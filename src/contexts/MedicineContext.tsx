@@ -6,7 +6,7 @@ import { auth, db } from '@/firebase/config';
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, where } from 'firebase/firestore';
 import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface MedicineContextType {
   medicines: ProcessedMedicine[];
@@ -25,22 +25,21 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        setUser(null);
-        setMedicines([]);
+      setUser(currentUser);
+      if (!currentUser && pathname !== '/login' && pathname !== '/signup') {
         router.push('/login');
       }
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, pathname]);
 
   const fetchMedicines = useCallback(async (userId: string) => {
+    setIsLoading(true);
     try {
       const medicinesCol = collection(db, 'medicines');
       const q = query(medicinesCol, where('userId', '==', userId));
@@ -49,6 +48,8 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setMedicines(userMedicines);
     } catch (error) {
       console.error("Failed to load medicines from Firestore", error);
+      // It's possible we get a permission error if the rules are not set up yet.
+      // We'll ignore this for now to allow the app to load.
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +57,10 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     if (user) {
-      setIsLoading(true);
       fetchMedicines(user.uid);
+    } else {
+      // Clear medicines when user logs out
+      setMedicines([]);
     }
   }, [user, fetchMedicines]);
 
@@ -96,12 +99,20 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user) return;
     try {
       const medicineRef = doc(db, 'medicines', id);
-      await setDoc(medicineRef, updatedMedicineData, { merge: true });
-      setMedicines(prev => 
-        prev.map(m => 
-          m.id === id ? { ...m, ...updatedMedicineData } : m
-        )
-      );
+      // We fetch the original doc to keep createdAt and userId
+      const originalMedicine = medicines.find(m => m.id === id);
+      if (originalMedicine) {
+        const fullUpdateData = {
+          ...originalMedicine,
+          ...updatedMedicineData,
+        };
+        await setDoc(medicineRef, fullUpdateData);
+        setMedicines(prev => 
+          prev.map(m => 
+            m.id === id ? fullUpdateData : m
+          )
+        );
+      }
     } catch (error) {
       console.error("Error updating medicine: ", error);
     }
