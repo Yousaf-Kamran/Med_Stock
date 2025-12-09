@@ -55,9 +55,9 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: AddMe
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      stock: "" as any,
-      dosages: [{ time: "08:00", amount: 1 }],
+      name: medicineToEdit?.name || "",
+      stock: medicineToEdit?.stock || 0,
+      dosages: medicineToEdit?.dosages.map(({id, ...rest}) => rest) || [{ time: "08:00", amount: 1 }],
     },
   });
   
@@ -77,10 +77,11 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: AddMe
   });
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-        form.reset();
-    }
     onOpenChange(isOpen);
+    if (!isOpen) {
+      // Delay reset to allow dialog to close smoothly
+      setTimeout(() => form.reset(), 150);
+    }
   };
 
   function onSubmit(data: FormData) {
@@ -205,7 +206,7 @@ export default function AddMedicineDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      stock: '' as any,
+      stock: 0,
       dosages: [{ time: "08:00", amount: 1 }],
     },
   });
@@ -214,6 +215,17 @@ export default function AddMedicineDialog() {
     control: form.control,
     name: "dosages",
   });
+  
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setTimeout(() => form.reset({
+        name: "",
+        stock: 0,
+        dosages: [{ time: "08:00", amount: 1 }],
+      }), 150);
+    }
+  };
 
   function onSubmit(data: FormData) {
     const dosagesWithIds = data.dosages.map(d => ({...d, id: crypto.randomUUID()}));
@@ -222,12 +234,11 @@ export default function AddMedicineDialog() {
       title: "Medicine Added",
       description: `${data.name} has been added to your tracker.`,
     });
-    setOpen(false);
-    form.reset();
+    handleOpenChange(false);
   }
   
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if(!isOpen) form.reset(); }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="-ml-1 mr-2 h-4 w-4" />
