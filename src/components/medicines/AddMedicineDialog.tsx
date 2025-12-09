@@ -50,7 +50,7 @@ export default function AddMedicineDialog() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      stock: undefined,
+      stock: '' as any,
       dosages: [{ time: "08:00", amount: 1 }],
     },
   });
