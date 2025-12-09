@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { getAuth, getDb } from '@/firebase/config'; // Use the new getter functions
+import { getFirebaseAuth, getFirebaseDb } from '@/firebase/config'; // Use the new getter functions
 import { collection, doc, getDocs, setDoc, deleteDoc, query, where } from 'firebase/firestore';
 import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
@@ -30,7 +30,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const pathname = usePathname();
   
   useEffect(() => {
-    const auth = getAuth();
+    const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
@@ -53,7 +53,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!userId) return;
     setIsLoading(true);
     try {
-      const db = getDb();
+      const db = getFirebaseDb();
       const medicinesCol = collection(db, 'medicines');
       const q = query(medicinesCol, where("userId", "==", userId));
       const querySnapshot = await getDocs(q);
@@ -91,7 +91,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       createdAt: new Date().toISOString(),
     };
     try {
-      const db = getDb();
+      const db = getFirebaseDb();
       const newDocRef = doc(collection(db, 'medicines'));
       await setDoc(newDocRef, newMedicine);
       setMedicines(prev => [...prev, { ...newMedicine, id: newDocRef.id }]);
@@ -102,7 +102,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteMedicine = async (id: string) => {
     try {
-      const db = getDb();
+      const db = getFirebaseDb();
       await deleteDoc(doc(db, 'medicines', id));
       setMedicines(prev => prev.filter(m => m.id !== id));
     } catch (error) {
@@ -116,7 +116,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
     try {
-      const db = getDb();
+      const db = getFirebaseDb();
       const medicineRef = doc(db, 'medicines', id);
       const originalMedicine = medicines.find(m => m.id === id);
       if (originalMedicine) {
