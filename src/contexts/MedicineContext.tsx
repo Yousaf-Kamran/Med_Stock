@@ -30,10 +30,10 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setIsLoading(false);
       if (!currentUser && pathname !== '/login' && pathname !== '/signup') {
         router.push('/login');
       }
-      setIsLoading(false);
     });
     return () => unsubscribe();
   }, [router, pathname]);
@@ -48,8 +48,6 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setMedicines(userMedicines);
     } catch (error) {
       console.error("Failed to load medicines from Firestore", error);
-      // It's possible we get a permission error if the rules are not set up yet.
-      // We'll ignore this for now to allow the app to load.
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +57,6 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (user) {
       fetchMedicines(user.uid);
     } else {
-      // Clear medicines when user logs out
       setMedicines([]);
     }
   }, [user, fetchMedicines]);
@@ -99,7 +96,6 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user) return;
     try {
       const medicineRef = doc(db, 'medicines', id);
-      // We fetch the original doc to keep createdAt and userId
       const originalMedicine = medicines.find(m => m.id === id);
       if (originalMedicine) {
         const fullUpdateData = {
@@ -109,7 +105,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await setDoc(medicineRef, fullUpdateData);
         setMedicines(prev => 
           prev.map(m => 
-            m.id === id ? fullUpdateData : m
+            m.id === id ? { ...fullUpdateData, id: id } : m
           )
         );
       }
@@ -126,8 +122,10 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }).sort((a, b) => (a.endDate?.getTime() ?? Infinity) - (b.endDate?.getTime() ?? Infinity));
   }, [medicines, now]);
 
+  const value = { user, medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading };
+
   return (
-    <MedicineContext.Provider value={{ user, medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading }}>
+    <MedicineContext.Provider value={value}>
       {children}
     </MedicineContext.Provider>
   );

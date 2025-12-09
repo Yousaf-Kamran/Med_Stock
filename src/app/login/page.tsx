@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { loginUser } from "@/firebase/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Pill } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMedicines } from "@/contexts/MedicineContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>("");
@@ -24,6 +25,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user } = useMedicines();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
+
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -51,6 +60,10 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+  
+    if (user) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
