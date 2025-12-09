@@ -5,7 +5,6 @@ export interface Dosage {
 
 export interface Medicine {
   id: string;
-  userId: string;
   name: string;
   stock: number; // Initial stock
   dosages: Dosage[];

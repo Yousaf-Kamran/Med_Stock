@@ -1,12 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db } from '@/firebase/config';
-import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, where } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
-import { useRouter, usePathname } from 'next/navigation';
 
 interface MedicineContextType {
   medicines: ProcessedMedicine[];
@@ -14,36 +12,20 @@ interface MedicineContextType {
   deleteMedicine: (id: string) => void;
   updateMedicine: (id: string, updatedMedicine: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => void;
   isLoading: boolean;
-  user: User | null;
 }
 
 const MedicineContext = createContext<MedicineContextType | undefined>(undefined);
 
 export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  const router = useRouter();
-  const pathname = usePathname();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsLoading(false);
-      if (!currentUser && pathname !== '/login' && pathname !== '/signup') {
-        router.push('/login');
-      }
-    });
-    return () => unsubscribe();
-  }, [router, pathname]);
-
-  const fetchMedicines = useCallback(async (userId: string) => {
+  const fetchMedicines = useCallback(async () => {
     setIsLoading(true);
     try {
       const medicinesCol = collection(db, 'medicines');
-      const q = query(medicinesCol, where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(medicinesCol);
       const userMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medicine));
       setMedicines(userMedicines);
     } catch (error) {
@@ -54,12 +36,8 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchMedicines(user.uid);
-    } else {
-      setMedicines([]);
-    }
-  }, [user, fetchMedicines]);
+    fetchMedicines();
+  }, [fetchMedicines]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
@@ -67,10 +45,8 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const addMedicine = async (medicineData: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => {
-    if (!user) return;
     const newMedicine: Omit<Medicine, 'id'> = {
       ...medicineData,
-      userId: user.uid,
       createdAt: new Date().toISOString(),
     };
     try {
@@ -83,7 +59,6 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const deleteMedicine = async (id: string) => {
-    if (!user) return;
     try {
       await deleteDoc(doc(db, 'medicines', id));
       setMedicines(prev => prev.filter(m => m.id !== id));
@@ -93,7 +68,6 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
   
   const updateMedicine = async (id: string, updatedMedicineData: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => {
-    if (!user) return;
     try {
       const medicineRef = doc(db, 'medicines', id);
       const originalMedicine = medicines.find(m => m.id === id);
@@ -122,7 +96,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }).sort((a, b) => (a.endDate?.getTime() ?? Infinity) - (b.endDate?.getTime() ?? Infinity));
   }, [medicines, now]);
 
-  const value = { user, medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading };
+  const value = { medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading };
 
   return (
     <MedicineContext.Provider value={value}>
