@@ -2,6 +2,7 @@
 
 import { Pill } from "lucide-react";
 import dynamic from 'next/dynamic';
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const AddMedicineDialog = dynamic(() => import('../medicines/AddMedicineDialog'), { ssr: false });
 
@@ -16,7 +17,10 @@ export default function Header() {
               MedStock Tracker
             </h1>
           </div>
-          <AddMedicineDialog />
+          <div className="flex items-center gap-4">
+            <AddMedicineDialog />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>
