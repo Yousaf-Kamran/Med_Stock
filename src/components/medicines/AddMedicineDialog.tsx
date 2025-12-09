@@ -76,6 +76,13 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: AddMe
     name: "dosages",
   });
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+        form.reset();
+    }
+    onOpenChange(isOpen);
+  };
+
   function onSubmit(data: FormData) {
     if (!medicineToEdit) return;
     const dosagesWithIds = data.dosages.map((d, i) => ({...d, id: medicineToEdit.dosages[i]?.id || crypto.randomUUID()}));
@@ -84,11 +91,11 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: AddMe
       title: "Medicine Updated",
       description: `${data.name} has been updated.`,
     });
-    onOpenChange(false);
+    handleOpenChange(false);
   }
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Edit Medicine</DialogTitle>
