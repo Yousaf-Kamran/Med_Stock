@@ -55,8 +55,8 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      stock: 1,
-      dosages: [{ time: "08:00", amount: 1 }],
+      stock: 0,
+      dosages: [{ time: "00:00", amount: 0 }],
     },
   });
   
