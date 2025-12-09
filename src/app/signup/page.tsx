@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { loginUser } from "@/firebase/auth";
+import { signupUser } from "@/firebase/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,30 +16,40 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Pill } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: FormEvent) => {
+  const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (password.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        return;
+    }
+
     setLoading(true);
     try {
-      await loginUser(email, password);
+      await signupUser(email, password);
       router.push("/");
     } catch (err: any) {
-      if (err.code) {
+       if (err.code) {
         switch (err.code) {
-          case "auth/wrong-password":
-          case "auth/user-not-found":
-          case "auth/invalid-credential":
-             setError("Invalid credentials. Please check your email and password.");
-             break;
+          case "auth/email-already-in-use":
+            setError("This email is already registered. Please log in.");
+            break;
+          case "auth/invalid-email":
+            setError("Please enter a valid email address.");
+            break;
+          case "auth/weak-password":
+            setError("The password is too weak.");
+            break;
           default:
             setError("An unexpected error occurred. Please try again.");
             break;
@@ -56,19 +66,19 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="flex justify-center items-center gap-2 mb-2">
+           <div className="flex justify-center items-center gap-2 mb-2">
             <Pill className="h-7 w-7 text-primary" />
             <h1 className="text-xl font-bold tracking-tight text-foreground">
               MedStock Tracker
             </h1>
           </div>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">Create an account</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account.
-          </d_content>
+            Enter your email and password to get started.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -99,15 +109,15 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Log In"}
+              {loading ? "Creating account..." : "Sign Up"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline">
-              Sign up
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Log in
             </Link>
           </p>
         </CardFooter>
