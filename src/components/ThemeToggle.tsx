@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function ThemeToggle() {
+function ThemeToggleComponent() {
   const { setTheme } = useTheme()
 
   return (
@@ -37,4 +37,24 @@ export function ThemeToggle() {
       </DropdownMenuContent>
     </DropdownMenu>
   )
+}
+
+export function ThemeToggle() {
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    // Render a placeholder or nothing on the server
+    return (
+       <Button variant="outline" size="icon" disabled>
+          <Sun className="h-[1.2rem] w-[1.2rem]" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+    )
+  }
+
+  return <ThemeToggleComponent />
 }
