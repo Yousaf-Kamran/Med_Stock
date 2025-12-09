@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import type { ProcessedMedicine } from "@/types";
-import { CalendarClock, Clock, MoreVertical, Trash2, Warehouse } from "lucide-react";
+import { CalendarClock, Clock, MoreVertical, Trash2, Warehouse, Pencil } from "lucide-react";
 import { formatEndDate } from "@/lib/medicine-utils";
 import { useMedicines } from '@/contexts/MedicineContext';
 import { useToast } from '@/hooks/use-toast';
+import { EditMedicineDialog } from './AddMedicineDialog';
 
 import {
   Card,
@@ -43,6 +44,7 @@ export default function MedicineCard({ medicine }: MedicineCardProps) {
   const { deleteMedicine } = useMedicines();
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const stockPercentage = medicine.stock > 0 ? (medicine.currentStock / medicine.stock) * 100 : 0;
   const isLowStock = stockPercentage < 20;
@@ -72,6 +74,10 @@ export default function MedicineCard({ medicine }: MedicineCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                <span>Edit</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Delete</span>
@@ -138,6 +144,12 @@ export default function MedicineCard({ medicine }: MedicineCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditMedicineDialog 
+        medicineToEdit={medicine}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </>
   );
 }

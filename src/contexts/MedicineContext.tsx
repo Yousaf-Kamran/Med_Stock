@@ -8,6 +8,7 @@ interface MedicineContextType {
   medicines: ProcessedMedicine[];
   addMedicine: (medicine: Omit<Medicine, 'id' | 'createdAt'>) => void;
   deleteMedicine: (id: string) => void;
+  updateMedicine: (id: string, updatedMedicine: Omit<Medicine, 'id' | 'createdAt'>) => void;
   isLoading: boolean;
 }
 
@@ -52,6 +53,14 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const deleteMedicine = (id: string) => {
     setMedicines(prev => prev.filter(m => m.id !== id));
   };
+  
+  const updateMedicine = (id: string, updatedMedicineData: Omit<Medicine, 'id' | 'createdAt'>) => {
+    setMedicines(prev => 
+      prev.map(m => 
+        m.id === id ? { ...m, ...updatedMedicineData } : m
+      )
+    );
+  };
 
   const processedMedicines = useMemo((): ProcessedMedicine[] => {
     return medicines.map(med => {
@@ -62,7 +71,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [medicines]);
 
   return (
-    <MedicineContext.Provider value={{ medicines: processedMedicines, addMedicine, deleteMedicine, isLoading }}>
+    <MedicineContext.Provider value={{ medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading }}>
       {children}
     </MedicineContext.Provider>
   );

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useMedicines } from "@/contexts/MedicineContext";
 import { useToast } from "@/hooks/use-toast";
+import type { Medicine } from "@/types";
 
 const dosageSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time (HH:MM)"),
@@ -40,6 +41,153 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+interface AddMedicineDialogProps {
+  medicineToEdit?: Medicine;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: AddMedicineDialogProps) {
+  const { updateMedicine } = useMedicines();
+  const { toast } = useToast();
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      stock: "" as any,
+      dosages: [{ time: "08:00", amount: 1 }],
+    },
+  });
+  
+  useEffect(() => {
+    if (medicineToEdit && open) {
+      form.reset({
+        name: medicineToEdit.name,
+        stock: medicineToEdit.stock,
+        dosages: medicineToEdit.dosages.map(({id, ...rest}) => rest),
+      });
+    }
+  }, [medicineToEdit, open, form]);
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "dosages",
+  });
+
+  function onSubmit(data: FormData) {
+    if (!medicineToEdit) return;
+    const dosagesWithIds = data.dosages.map((d, i) => ({...d, id: medicineToEdit.dosages[i]?.id || crypto.randomUUID()}));
+    updateMedicine(medicineToEdit.id, {...data, dosages: dosagesWithIds });
+    toast({
+      title: "Medicine Updated",
+      description: `${data.name} has been updated.`,
+    });
+    onOpenChange(false);
+  }
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Edit Medicine</DialogTitle>
+          <DialogDescription>
+            Update the details of your medicine.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Medicine Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Insulin" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Initial Stock Quantity</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 100" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div>
+              <FormLabel>Dosage Schedule</FormLabel>
+              <div className="space-y-2 mt-2">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="flex items-center gap-2">
+                    <FormField
+                      control={form.control}
+                      name={`dosages.${index}.time`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input type="time" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`dosages.${index}.amount`}
+                      render={({ field }) => (
+                        <FormItem className="w-24">
+                          <FormControl>
+                            <Input type="number" placeholder="Amt." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remove(index)}
+                      disabled={fields.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+               <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => append({ time: "20:00", amount: 1 })}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Dosage Time
+              </Button>
+            </div>
+            
+            <DialogFooter>
+              <Button type="submit">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export default function AddMedicineDialog() {
   const [open, setOpen] = useState(false);
@@ -72,7 +220,7 @@ export default function AddMedicineDialog() {
   }
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if(!isOpen) form.reset(); }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="-ml-1 mr-2 h-4 w-4" />
