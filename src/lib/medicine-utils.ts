@@ -1,14 +1,13 @@
 import type { Medicine, Dosage } from '@/types';
 import { formatDistanceToNow, format } from 'date-fns';
 
-export function calculateCurrentStock(medicine: Medicine): number {
+export function calculateCurrentStock(medicine: Medicine, now: Date): number {
   const { stock: initialStock, createdAt, dosages } = medicine;
   if (!dosages || dosages.length === 0) {
     return initialStock;
   }
 
   const startTime = new Date(createdAt);
-  const now = new Date();
   let totalAmountTaken = 0;
 
   for (const dosage of dosages) {
@@ -31,7 +30,7 @@ export function calculateCurrentStock(medicine: Medicine): number {
   return Math.max(0, currentStock);
 }
 
-export function calculateEndDate(currentStock: number, dosages: Dosage[]): Date | null {
+export function calculateEndDate(currentStock: number, dosages: Dosage[], now: Date): Date | null {
   if (dosages.length === 0 || currentStock <= 0) {
     return null;
   }
@@ -42,15 +41,14 @@ export function calculateEndDate(currentStock: number, dosages: Dosage[]): Date 
   }
   
   let remainingStock = currentStock;
-  let predictionDate = new Date();
+  let predictionDate = new Date(now);
   
   const sortedDosages = [...dosages].sort((a, b) => a.time.localeCompare(b.time));
 
   // Limit search to 5 years to prevent infinite loops
   for (let i = 0; i < 365 * 5; i++) {
     const isToday = i === 0;
-    const now = new Date();
-    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentTimeInMinutes = predictionDate.getHours() * 60 + predictionDate.getMinutes();
 
     for (const dosage of sortedDosages) {
       const [h, m] = dosage.time.split(':').map(Number);

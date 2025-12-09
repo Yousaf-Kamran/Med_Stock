@@ -55,7 +55,7 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      stock: 0,
+      stock: 1,
       dosages: [{ time: "08:00", amount: 1 }],
     },
   });
@@ -77,12 +77,21 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
 
   const handleOpenChange = (isOpen: boolean) => {
     onOpenChange(isOpen);
+    if (!isOpen) {
+      // Small delay to allow dialog to close before reset.
+      setTimeout(() => {
+        form.reset({
+            name: "",
+            stock: 1,
+            dosages: [{ time: "08:00", amount: 1 }],
+        });
+      }, 150);
+    }
   };
 
   function onSubmit(data: FormData) {
     if (!medicineToEdit) return;
-    const dosagesWithIds = data.dosages.map((d, i) => ({...d, id: medicineToEdit.dosages[i]?.id || crypto.randomUUID()}));
-    updateMedicine(medicineToEdit.id, {...data, dosages: dosagesWithIds });
+    updateMedicine(medicineToEdit.id, data);
     toast({
       title: "Medicine Updated",
       description: `${data.name} has been updated.`,

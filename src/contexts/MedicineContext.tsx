@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import type { Medicine, ProcessedMedicine, Dosage } from '@/types';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
 
 interface MedicineContextType {
@@ -17,6 +17,8 @@ const MedicineContext = createContext<MedicineContextType | undefined>(undefined
 export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // This state is used to trigger re-calculations
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     try {
@@ -29,6 +31,13 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setIsLoading(false);
     }
+
+    // Update the 'now' state every minute to trigger re-calculation
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -44,7 +53,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addMedicine = (medicine: Omit<Medicine, 'id' | 'createdAt'>) => {
     const newMedicine: Medicine = {
       ...medicine,
-      id: new Date().toISOString() + Math.random(),
+      id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
     setMedicines(prev => [...prev, newMedicine]);
@@ -64,11 +73,11 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const processedMedicines = useMemo((): ProcessedMedicine[] => {
     return medicines.map(med => {
-      const currentStock = calculateCurrentStock(med);
-      const endDate = calculateEndDate(currentStock, med.dosages);
+      const currentStock = calculateCurrentStock(med, now);
+      const endDate = calculateEndDate(currentStock, med.dosages, now);
       return { ...med, currentStock, endDate };
     }).sort((a, b) => (a.endDate?.getTime() ?? Infinity) - (b.endDate?.getTime() ?? Infinity));
-  }, [medicines]);
+  }, [medicines, now]);
 
   return (
     <MedicineContext.Provider value={{ medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading }}>

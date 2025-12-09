@@ -41,9 +41,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const defaultFormValues = {
+const defaultFormValues: FormData = {
   name: "",
-  stock: 0,
+  stock: 1,
   dosages: [{ time: "08:00", amount: 1 }],
 };
 
@@ -70,8 +70,7 @@ export default function AddMedicineDialog() {
   };
 
   function onSubmit(data: FormData) {
-    const dosagesWithIds = data.dosages.map(d => ({...d, id: crypto.randomUUID()}));
-    addMedicine({...data, dosages: dosagesWithIds });
+    addMedicine(data);
     toast({
       title: "Medicine Added",
       description: `${data.name} has been added to your tracker.`,
