@@ -1,10 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { db } from '@/firebase/config';
-import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, getDb } from '@/firebase/config'; // Use the new getter functions
+import { collection, doc, getDocs, setDoc, deleteDoc, query, where } from 'firebase/firestore';
 import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface MedicineContextType {
   medicines: ProcessedMedicine[];
@@ -12,6 +14,8 @@ interface MedicineContextType {
   deleteMedicine: (id: string) => void;
   updateMedicine: (id: string, updatedMedicine: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => void;
   isLoading: boolean;
+  user: User | null;
+  isAuthLoading: boolean;
 }
 
 const MedicineContext = createContext<MedicineContextType | undefined>(undefined);
@@ -20,12 +24,39 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-
-  const fetchMedicines = useCallback(async () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+  
+  useEffect(() => {
+    if (!isAuthLoading) {
+      const isAuthPage = pathname === '/login' || pathname === '/signup';
+      if (!user && !isAuthPage) {
+        router.push('/login');
+      } else if (user && isAuthPage) {
+        router.push('/');
+      }
+    }
+  }, [user, isAuthLoading, router, pathname]);
+  
+  const fetchMedicines = useCallback(async (userId: string) => {
+    if (!userId) return;
     setIsLoading(true);
     try {
+      const db = getDb();
       const medicinesCol = collection(db, 'medicines');
-      const querySnapshot = await getDocs(medicinesCol);
+      const q = query(medicinesCol, where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
       const userMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medicine));
       setMedicines(userMedicines);
     } catch (error) {
@@ -34,10 +65,15 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsLoading(false);
     }
   }, []);
-
+  
   useEffect(() => {
-    fetchMedicines();
-  }, [fetchMedicines]);
+    if (user) {
+      fetchMedicines(user.uid);
+    } else if (!isAuthLoading) {
+      setMedicines([]);
+      setIsLoading(false);
+    }
+  }, [user, isAuthLoading, fetchMedicines]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
@@ -45,11 +81,17 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const addMedicine = async (medicineData: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => {
+    if (!user) {
+      console.error("No user logged in to add medicine");
+      return;
+    }
     const newMedicine: Omit<Medicine, 'id'> = {
       ...medicineData,
+      userId: user.uid,
       createdAt: new Date().toISOString(),
     };
     try {
+      const db = getDb();
       const newDocRef = doc(collection(db, 'medicines'));
       await setDoc(newDocRef, newMedicine);
       setMedicines(prev => [...prev, { ...newMedicine, id: newDocRef.id }]);
@@ -60,6 +102,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteMedicine = async (id: string) => {
     try {
+      const db = getDb();
       await deleteDoc(doc(db, 'medicines', id));
       setMedicines(prev => prev.filter(m => m.id !== id));
     } catch (error) {
@@ -68,13 +111,19 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
   
   const updateMedicine = async (id: string, updatedMedicineData: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => {
+     if (!user) {
+      console.error("No user logged in to update medicine");
+      return;
+    }
     try {
+      const db = getDb();
       const medicineRef = doc(db, 'medicines', id);
       const originalMedicine = medicines.find(m => m.id === id);
       if (originalMedicine) {
         const fullUpdateData = {
           ...originalMedicine,
           ...updatedMedicineData,
+          userId: user.uid,
         };
         await setDoc(medicineRef, fullUpdateData);
         setMedicines(prev => 
@@ -96,7 +145,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }).sort((a, b) => (a.endDate?.getTime() ?? Infinity) - (b.endDate?.getTime() ?? Infinity));
   }, [medicines, now]);
 
-  const value = { medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading };
+  const value = { medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading, user, isAuthLoading };
 
   return (
     <MedicineContext.Provider value={value}>
