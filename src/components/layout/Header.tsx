@@ -1,5 +1,9 @@
+"use client";
+
 import { Pill } from "lucide-react";
-import AddMedicineDialog from "../medicines/AddMedicineDialog";
+import dynamic from 'next/dynamic';
+
+const AddMedicineDialog = dynamic(() => import('../medicines/AddMedicineDialog'), { ssr: false });
 
 export default function Header() {
   return (

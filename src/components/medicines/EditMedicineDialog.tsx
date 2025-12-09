@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -27,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useMedicines } from "@/contexts/MedicineContext";
 import { useToast } from "@/hooks/use-toast";
+import type { Medicine } from "@/types";
 
 const dosageSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time (HH:MM)"),
@@ -41,57 +41,62 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const defaultFormValues = {
-  name: "",
-  stock: 0,
-  dosages: [{ time: "08:00", amount: 1 }],
-};
+interface EditMedicineDialogProps {
+  medicineToEdit: Medicine;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-export default function AddMedicineDialog() {
-  const [open, setOpen] = useState(false);
-  const { addMedicine } = useMedicines();
+export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditMedicineDialogProps) {
+  const { updateMedicine } = useMedicines();
   const { toast } = useToast();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultFormValues,
+    defaultValues: {
+      name: "",
+      stock: 0,
+      dosages: [{ time: "08:00", amount: 1 }],
+    },
   });
+  
+  useEffect(() => {
+    if (open && medicineToEdit) {
+      form.reset({
+        name: medicineToEdit.name,
+        stock: medicineToEdit.stock,
+        dosages: medicineToEdit.dosages.map(({id, ...rest}) => rest),
+      });
+    }
+  }, [medicineToEdit, open, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "dosages",
   });
-  
+
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      form.reset(defaultFormValues);
-    }
-    setOpen(isOpen);
+    onOpenChange(isOpen);
   };
 
   function onSubmit(data: FormData) {
-    const dosagesWithIds = data.dosages.map(d => ({...d, id: crypto.randomUUID()}));
-    addMedicine({...data, dosages: dosagesWithIds });
+    if (!medicineToEdit) return;
+    const dosagesWithIds = data.dosages.map((d, i) => ({...d, id: medicineToEdit.dosages[i]?.id || crypto.randomUUID()}));
+    updateMedicine(medicineToEdit.id, {...data, dosages: dosagesWithIds });
     toast({
-      title: "Medicine Added",
-      description: `${data.name} has been added to your tracker.`,
+      title: "Medicine Updated",
+      description: `${data.name} has been updated.`,
     });
     handleOpenChange(false);
   }
   
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="-ml-1 mr-2 h-4 w-4" />
-          Add Medicine
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add a New Medicine</DialogTitle>
+          <DialogTitle>Edit Medicine</DialogTitle>
           <DialogDescription>
-            Enter the details of your new medicine to start tracking.
+            Update the details of your medicine.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -177,7 +182,7 @@ export default function AddMedicineDialog() {
             </div>
             
             <DialogFooter>
-              <Button type="submit">Save Medicine</Button>
+              <Button type="submit">Save Changes</Button>
             </DialogFooter>
           </form>
         </Form>

@@ -6,7 +6,7 @@ import { CalendarClock, Clock, MoreVertical, Trash2, Warehouse, Pencil } from "l
 import { formatEndDate } from "@/lib/medicine-utils";
 import { useMedicines } from '@/contexts/MedicineContext';
 import { useToast } from '@/hooks/use-toast';
-import { EditMedicineDialog } from './AddMedicineDialog';
+import { EditMedicineDialog } from './EditMedicineDialog';
 
 import {
   Card,
