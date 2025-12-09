@@ -25,13 +25,13 @@ export default function SignupPage() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { user } = useMedicines();
+  const { user, isLoading } = useMedicines();
 
   useEffect(() => {
-    if (user) {
+    if (!isLoading && user) {
       router.push("/");
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,7 +70,7 @@ export default function SignupPage() {
     }
   };
   
-    if (user) {
+  if (isLoading || user) {
     return null;
   }
 

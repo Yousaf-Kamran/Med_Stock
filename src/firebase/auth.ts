@@ -1,18 +1,19 @@
 import {
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  type Auth,
 } from "firebase/auth";
-import { auth } from "./config";
+import { auth } from "@/firebase/config";
 
-export async function loginUser(email, password) {
-  return await signInWithEmailAndPassword(auth, email, password);
+export function signupUser(email: string, password: string) {
+  return createUserWithEmailAndPassword(auth, email, password);
 }
 
-export async function signupUser(email, password) {
-  return await createUserWithEmailAndPassword(auth, email, password);
+export function loginUser(email: string, password: string) {
+  return signInWithEmailAndPassword(auth, email, password);
 }
 
-export async function signOut() {
-  return await firebaseSignOut(auth);
+export function signOut() {
+  return firebaseSignOut(auth);
 }

@@ -25,14 +25,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { user } = useMedicines();
+  const { user, isLoading } = useMedicines();
 
   useEffect(() => {
-    if (user) {
+    if (!isLoading && user) {
       router.push("/");
     }
-  }, [user, router]);
-
+  }, [user, isLoading, router]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,11 +43,14 @@ export default function LoginPage() {
     } catch (err: any) {
       if (err.code) {
         switch (err.code) {
-          case "auth/wrong-password":
           case "auth/user-not-found":
+          case "auth/wrong-password":
           case "auth/invalid-credential":
-             setError("Invalid credentials. Please check your email and password.");
-             break;
+            setError("Invalid email or password. Please try again.");
+            break;
+          case "auth/invalid-email":
+            setError("Please enter a valid email address.");
+            break;
           default:
             setError("An unexpected error occurred. Please try again.");
             break;
@@ -61,8 +63,8 @@ export default function LoginPage() {
     }
   };
   
-    if (user) {
-    return null;
+  if (isLoading || user) {
+    return null; // Or a loading spinner
   }
 
   return (
@@ -75,9 +77,9 @@ export default function LoginPage() {
               MedStock Tracker
             </h1>
           </div>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">Welcome back</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account.
+            Enter your credentials to access your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
