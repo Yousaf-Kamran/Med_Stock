@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Medicine, ProcessedMedicine } from '@/types';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import type { Medicine, ProcessedMedicine, Dosage } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
 
 interface MedicineContextType {
@@ -17,7 +17,6 @@ const MedicineContext = createContext<MedicineContextType | undefined>(undefined
 export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // This state is used to trigger re-calculations
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIsLoading(false);
     }
 
-    // Update the 'now' state every minute to trigger re-calculation
     const interval = setInterval(() => {
       setNow(new Date());
     }, 60000); // 60 seconds
@@ -66,7 +64,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateMedicine = (id: string, updatedMedicineData: Omit<Medicine, 'id' | 'createdAt'>) => {
     setMedicines(prev => 
       prev.map(m => 
-        m.id === id ? { ...m, ...updatedMedicineData } : m
+        m.id === id ? { ...m, ...updatedMedicineData, id: m.id, createdAt: m.createdAt } : m
       )
     );
   };

@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useMedicines } from "@/contexts/MedicineContext";
 import { useToast } from "@/hooks/use-toast";
-import type { Medicine } from "@/types";
+import type { ProcessedMedicine } from "@/types";
 
 const dosageSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time (HH:MM)"),
@@ -35,14 +35,14 @@ const dosageSchema = z.object({
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  stock: z.coerce.number().int().min(1, "Initial stock must be at least 1."),
+  stock: z.coerce.number().int().min(1, "Stock must be at least 1."),
   dosages: z.array(dosageSchema).min(1, "At least one dosage schedule is required."),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 interface EditMedicineDialogProps {
-  medicineToEdit: Medicine;
+  medicineToEdit: ProcessedMedicine;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -65,7 +65,7 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
       form.reset({
         name: medicineToEdit.name,
         stock: medicineToEdit.stock,
-        dosages: medicineToEdit.dosages.map(({id, ...rest}) => rest),
+        dosages: medicineToEdit.dosages,
       });
     }
   }, [medicineToEdit, open, form]);
@@ -75,20 +75,6 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
     name: "dosages",
   });
 
-  const handleOpenChange = (isOpen: boolean) => {
-    onOpenChange(isOpen);
-    if (!isOpen) {
-      // Small delay to allow dialog to close before reset.
-      setTimeout(() => {
-        form.reset({
-            name: "",
-            stock: 1,
-            dosages: [{ time: "08:00", amount: 1 }],
-        });
-      }, 150);
-    }
-  };
-
   function onSubmit(data: FormData) {
     if (!medicineToEdit) return;
     updateMedicine(medicineToEdit.id, data);
@@ -96,11 +82,11 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
       title: "Medicine Updated",
       description: `${data.name} has been updated.`,
     });
-    handleOpenChange(false);
+    onOpenChange(false);
   }
   
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Edit Medicine</DialogTitle>
@@ -128,7 +114,7 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
               name="stock"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Initial Stock Quantity</FormLabel>
+                  <FormLabel>Stock Quantity</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 100" {...field} />
                   </FormControl>

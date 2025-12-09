@@ -89,8 +89,8 @@ export default function MedicineCard({ medicine, onEdit, onDelete }: MedicineCar
           <span>Dosage Schedule</span>
         </div>
         <div className="flex flex-wrap gap-1">
-          {medicine.dosages.map((dosage) => (
-            <Badge key={dosage.id} variant="secondary">
+          {medicine.dosages.map((dosage, index) => (
+            <Badge key={index} variant="secondary">
               {dosage.amount} at {dosage.time}
             </Badge>
           ))}

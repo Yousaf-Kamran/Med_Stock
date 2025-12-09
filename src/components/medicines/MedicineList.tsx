@@ -24,11 +24,21 @@ export default function MedicineList() {
   const { toast } = useToast();
 
   const [medicineToEdit, setMedicineToEdit] = useState<ProcessedMedicine | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
   const [medicineToDelete, setMedicineToDelete] = useState<ProcessedMedicine | null>(null);
 
   const handleEdit = (medicine: ProcessedMedicine) => {
     setMedicineToEdit(medicine);
+    setIsEditDialogOpen(true);
   };
+
+  const handleEditDialogClose = (open: boolean) => {
+    if (!open) {
+      setMedicineToEdit(null);
+    }
+    setIsEditDialogOpen(open);
+  }
 
   const handleDeleteRequest = (medicine: ProcessedMedicine) => {
     setMedicineToDelete(medicine);
@@ -84,8 +94,8 @@ export default function MedicineList() {
       {medicineToEdit && (
         <EditMedicineDialog 
           medicineToEdit={medicineToEdit}
-          open={!!medicineToEdit}
-          onOpenChange={(open) => !open && setMedicineToEdit(null)}
+          open={isEditDialogOpen}
+          onOpenChange={handleEditDialogClose}
         />
       )}
 

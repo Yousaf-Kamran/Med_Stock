@@ -63,10 +63,10 @@ export default function AddMedicineDialog() {
   });
   
   const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
     if (!isOpen) {
       form.reset(defaultFormValues);
     }
-    setOpen(isOpen);
   };
 
   function onSubmit(data: FormData) {
@@ -102,7 +102,7 @@ export default function AddMedicineDialog() {
                 <FormItem>
                   <FormLabel>Medicine Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Insulin" {...field} />
+                    <Input placeholder="e.g., Insulin" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,7 +115,7 @@ export default function AddMedicineDialog() {
                 <FormItem>
                   <FormLabel>Initial Stock Quantity</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 100" {...field} />
+                    <Input type="number" placeholder="e.g., 100" {...field} value={field.value || 0} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,7 +133,7 @@ export default function AddMedicineDialog() {
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
-                            <Input type="time" {...field} />
+                            <Input type="time" {...field} value={field.value || '00:00'} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -145,7 +145,7 @@ export default function AddMedicineDialog() {
                       render={({ field }) => (
                         <FormItem className="w-24">
                           <FormControl>
-                            <Input type="number" placeholder="Amt." {...field} />
+                            <Input type="number" placeholder="Amt." {...field} value={field.value || 0} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
