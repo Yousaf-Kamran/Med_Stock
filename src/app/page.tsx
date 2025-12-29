@@ -2,8 +2,11 @@
 
 import Header from "@/components/layout/Header";
 import MedicineList from "@/components/medicines/MedicineList";
+import { useMedicineNotifications } from "@/hooks/useMedicineNotifications";
 
 export default function Home() {
+  useMedicineNotifications();
+
   return (
     <>
       <Header />

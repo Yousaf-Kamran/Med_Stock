@@ -28,7 +28,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const medicinesCol = collection(db, 'medicines');
       const querySnapshot = await getDocs(medicinesCol);
       const allMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medicine));
-      setMedicines(allMedicines);
+      setMedicines(allMedicines.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (error) {
       console.error("Failed to load medicines from Firestore", error);
     } finally {
@@ -54,7 +54,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const db = getFirebaseDb();
       const newDocRef = doc(collection(db, 'medicines'));
       await setDoc(newDocRef, newMedicine);
-      setMedicines(prev => [...prev, { ...newMedicine, id: newDocRef.id }]);
+      setMedicines(prev => [{ ...newMedicine, id: newDocRef.id }, ...prev]);
     } catch (error) {
       console.error("Error adding medicine: ", error);
     }
