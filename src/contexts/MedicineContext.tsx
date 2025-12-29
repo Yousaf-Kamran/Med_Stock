@@ -2,13 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { getFirebaseDb } from '@/firebase/config';
-import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
 
 interface MedicineContextType {
   medicines: ProcessedMedicine[];
-  addMedicine: (medicine: Omit<Medicine, 'id' | 'createdAt'>) => void;
+  addMedicine: (medicine: Omit<Medicine, 'id' | 'createdAt'>) => Promise<void>;
   deleteMedicine: (id: string) => void;
   updateMedicine: (id: string, updatedMedicine: Omit<Medicine, 'id' | 'createdAt'>) => void;
   isLoading: boolean;
@@ -21,24 +21,22 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
 
-  const fetchMedicines = useCallback(async () => {
+  useEffect(() => {
     setIsLoading(true);
-    try {
-      const db = getFirebaseDb();
-      const medicinesCol = collection(db, 'medicines');
-      const querySnapshot = await getDocs(medicinesCol);
+    const db = getFirebaseDb();
+    const medicinesCol = collection(db, 'medicines');
+
+    const unsubscribe = onSnapshot(medicinesCol, (querySnapshot) => {
       const allMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medicine));
       setMedicines(allMedicines.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    } catch (error) {
-      console.error("Failed to load medicines from Firestore", error);
-    } finally {
       setIsLoading(false);
-    }
-  }, []);
+    }, (error) => {
+      console.error("Failed to load medicines from Firestore", error);
+      setIsLoading(false);
+    });
 
-  useEffect(() => {
-    fetchMedicines();
-  }, [fetchMedicines]);
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
@@ -52,9 +50,8 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     try {
       const db = getFirebaseDb();
-      const newDocRef = doc(collection(db, 'medicines'));
-      await setDoc(newDocRef, newMedicine);
-      setMedicines(prev => [{ ...newMedicine, id: newDocRef.id }, ...prev]);
+      await addDoc(collection(db, 'medicines'), newMedicine);
+      // No need to set local state, onSnapshot will handle it
     } catch (error) {
       console.error("Error adding medicine: ", error);
     }
@@ -64,7 +61,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const db = getFirebaseDb();
       await deleteDoc(doc(db, 'medicines', id));
-      setMedicines(prev => prev.filter(m => m.id !== id));
+      // No need to set local state, onSnapshot will handle it
     } catch (error) {
       console.error("Error deleting medicine: ", error);
     }
@@ -81,11 +78,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ...updatedMedicineData,
         };
         await setDoc(medicineRef, fullUpdateData);
-        setMedicines(prev =>
-          prev.map(m =>
-            m.id === id ? { ...fullUpdateData, id: id } : m
-          )
-        );
+        // No need to set local state, onSnapshot will handle it
       }
     } catch (error) {
       console.error("Error updating medicine: ", error);

@@ -83,7 +83,7 @@ export default function MedicineCard({ medicine, onEdit, onDelete }: MedicineCar
               <CalendarClock className="h-4 w-4" />
               <span>Predicted End Date</span>
             </div>
-          <p className="font-semibold text-accent-foreground/90 bg-accent/20 p-2 rounded-md text-sm">
+          <p className="font-semibold text-accent-foreground bg-accent/20 p-2 rounded-md text-sm">
             {medicine.currentStock > 0 ? formatEndDate(medicine.endDate) : "Depleted"}
           </p>
         </div>
