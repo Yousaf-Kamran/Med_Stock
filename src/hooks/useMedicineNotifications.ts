@@ -11,16 +11,25 @@ export function useMedicineNotifications() {
   const { medicines, isLoading } = useMedicines();
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !('Notification' in window) || !localStorage) {
+    if (typeof window === 'undefined' || isLoading) {
       return;
     }
 
-    const notificationPermission = window.localStorage.getItem('notification_permission');
-    if (notificationPermission !== 'granted' || isLoading) {
+    let hasLocalStorage = false;
+    try {
+      hasLocalStorage = !!window.localStorage;
+    } catch {
+      hasLocalStorage = false;
+    }
+
+    if (!hasLocalStorage || !('Notification' in window)) {
+      return;
+    }
+
+    if (Notification.permission !== 'granted' || window.localStorage.getItem('notification_permission') !== 'granted') {
       return;
     }
     
-    // Function to perform the check
     const checkStockAndNotify = () => {
       const previouslyNotified: string[] = JSON.parse(localStorage.getItem(LOW_STOCK_NOTIFIED_KEY) || '[]');
       const newlyLowStockMedicines = medicines.filter(med => {
@@ -39,7 +48,6 @@ export function useMedicineNotifications() {
         localStorage.setItem(LOW_STOCK_NOTIFIED_KEY, JSON.stringify(updatedNotified));
       }
       
-      // Clean up notified list for medicines that are no longer low stock
       const currentlyLowStockIds = medicines.filter(m => m.currentStock < (m.lowStockThreshold ?? 10)).map(m => m.id);
       const stillNotified = previouslyNotified.filter(id => currentlyLowStockIds.includes(id));
       if (stillNotified.length !== previouslyNotified.length) {
