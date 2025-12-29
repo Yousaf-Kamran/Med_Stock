@@ -2,15 +2,8 @@
 
 import Header from "@/components/layout/Header";
 import MedicineList from "@/components/medicines/MedicineList";
-import { useMedicines } from "@/contexts/MedicineContext";
 
 export default function Home() {
-  const { user, isAuthLoading } = useMedicines();
-
-  if (isAuthLoading || !user) {
-    return null; // The context handles redirection and loading state
-  }
-
   return (
     <>
       <Header />

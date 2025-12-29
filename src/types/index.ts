@@ -9,7 +9,6 @@ export interface Medicine {
   stock: number; // Initial stock
   dosages: Dosage[];
   createdAt: string; // ISO date string
-  userId: string;
 }
 
 export interface ProcessedMedicine extends Medicine {

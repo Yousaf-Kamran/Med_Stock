@@ -1,21 +1,17 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { getFirebaseAuth, getFirebaseDb } from '@/firebase/config'; // Use the new getter functions
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { getFirebaseDb } from '@/firebase/config';
+import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import type { Medicine, ProcessedMedicine } from '@/types';
 import { calculateCurrentStock, calculateEndDate } from '@/lib/medicine-utils';
-import { useRouter, usePathname } from 'next/navigation';
 
 interface MedicineContextType {
   medicines: ProcessedMedicine[];
-  addMedicine: (medicine: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => void;
+  addMedicine: (medicine: Omit<Medicine, 'id' | 'createdAt'>) => void;
   deleteMedicine: (id: string) => void;
-  updateMedicine: (id: string, updatedMedicine: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => void;
+  updateMedicine: (id: string, updatedMedicine: Omit<Medicine, 'id' | 'createdAt'>) => void;
   isLoading: boolean;
-  user: User | null;
-  isAuthLoading: boolean;
 }
 
 const MedicineContext = createContext<MedicineContextType | undefined>(undefined);
@@ -24,70 +20,34 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
-  
-  useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-  
-  useEffect(() => {
-    if (!isAuthLoading) {
-      const isAuthPage = pathname === '/login' || pathname === '/signup';
-      if (!user && !isAuthPage) {
-        router.push('/login');
-      } else if (user && isAuthPage) {
-        router.push('/');
-      }
-    }
-  }, [user, isAuthLoading, router, pathname]);
-  
-  const fetchMedicines = useCallback(async (userId: string) => {
-    if (!userId) return;
+
+  const fetchMedicines = useCallback(async () => {
     setIsLoading(true);
     try {
       const db = getFirebaseDb();
       const medicinesCol = collection(db, 'medicines');
-      const q = query(medicinesCol, where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
-      const userMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medicine));
-      setMedicines(userMedicines);
+      const querySnapshot = await getDocs(medicinesCol);
+      const allMedicines = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Medicine));
+      setMedicines(allMedicines);
     } catch (error) {
       console.error("Failed to load medicines from Firestore", error);
     } finally {
       setIsLoading(false);
     }
   }, []);
-  
+
   useEffect(() => {
-    if (user) {
-      fetchMedicines(user.uid);
-    } else if (!isAuthLoading) {
-      setMedicines([]);
-      setIsLoading(false);
-    }
-  }, [user, isAuthLoading, fetchMedicines]);
+    fetchMedicines();
+  }, [fetchMedicines]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const addMedicine = async (medicineData: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => {
-    if (!user) {
-      console.error("No user logged in to add medicine");
-      return;
-    }
+  const addMedicine = async (medicineData: Omit<Medicine, 'id' | 'createdAt'>) => {
     const newMedicine: Omit<Medicine, 'id'> = {
       ...medicineData,
-      userId: user.uid,
       createdAt: new Date().toISOString(),
     };
     try {
@@ -109,12 +69,8 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error("Error deleting medicine: ", error);
     }
   };
-  
-  const updateMedicine = async (id: string, updatedMedicineData: Omit<Medicine, 'id' | 'createdAt' | 'userId'>) => {
-     if (!user) {
-      console.error("No user logged in to update medicine");
-      return;
-    }
+
+  const updateMedicine = async (id: string, updatedMedicineData: Omit<Medicine, 'id' | 'createdAt'>) => {
     try {
       const db = getFirebaseDb();
       const medicineRef = doc(db, 'medicines', id);
@@ -123,11 +79,10 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const fullUpdateData = {
           ...originalMedicine,
           ...updatedMedicineData,
-          userId: user.uid,
         };
         await setDoc(medicineRef, fullUpdateData);
-        setMedicines(prev => 
-          prev.map(m => 
+        setMedicines(prev =>
+          prev.map(m =>
             m.id === id ? { ...fullUpdateData, id: id } : m
           )
         );
@@ -145,7 +100,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }).sort((a, b) => (a.endDate?.getTime() ?? Infinity) - (b.endDate?.getTime() ?? Infinity));
   }, [medicines, now]);
 
-  const value = { medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading, user, isAuthLoading };
+  const value = { medicines: processedMedicines, addMedicine, deleteMedicine, updateMedicine, isLoading };
 
   return (
     <MedicineContext.Provider value={value}>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMedicines } from "@/contexts/MedicineContext";
 import MedicineCard from "./MedicineCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Syringe, Loader2 } from "lucide-react";
+import { Syringe } from "lucide-react";
 import type { ProcessedMedicine } from "@/types";
 import {
   AlertDialog,
@@ -20,7 +20,7 @@ import { EditMedicineDialog } from './EditMedicineDialog';
 import { useToast } from "@/hooks/use-toast";
 
 export default function MedicineList() {
-  const { medicines, isLoading, deleteMedicine, isAuthLoading, user } = useMedicines();
+  const { medicines, isLoading, deleteMedicine } = useMedicines();
   const { toast } = useToast();
 
   const [medicineToEdit, setMedicineToEdit] = useState<ProcessedMedicine | null>(null);
@@ -55,27 +55,6 @@ export default function MedicineList() {
       setMedicineToDelete(null);
     }
   };
-
-  if (isAuthLoading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg text-muted-foreground">Authenticating...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    // This case should be handled by the context redirect, but as a fallback:
-    return (
-      <div className="text-center py-20 border-2 border-dashed rounded-lg">
-        <h3 className="mt-4 text-lg font-medium text-foreground">Please log in</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          You need to be logged in to view your medicines.
-        </p>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (

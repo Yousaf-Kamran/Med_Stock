@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth as getFirebaseAuthSDK, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,20 +11,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This function ensures that we initialize the app only once.
-function getFirebaseApp(): FirebaseApp {
-  if (!getApps().length) {
+// Initialize Firebase
+function getFirebaseApp() {
+    if (getApps().length) {
+        return getApp();
+    }
     return initializeApp(firebaseConfig);
-  }
-  return getApp();
 }
 
-export function getFirebaseDb(): Firestore {
-  const app = getFirebaseApp();
-  return getFirestore(app);
-}
-
-export function getFirebaseAuth(): Auth {
-  const app = getFirebaseApp();
-  return getFirebaseAuthSDK(app);
+export function getFirebaseDb() {
+    const app = getFirebaseApp();
+    return getFirestore(app);
 }
