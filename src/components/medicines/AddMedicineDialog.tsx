@@ -36,6 +36,7 @@ const dosageSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   stock: z.coerce.number().int().min(1, "Initial stock must be at least 1."),
+  lowStockThreshold: z.coerce.number().int().min(0, "Low stock threshold must be a positive number."),
   dosages: z.array(dosageSchema).min(1, "At least one dosage schedule is required."),
 });
 
@@ -44,6 +45,7 @@ type FormData = z.infer<typeof formSchema>;
 const defaultFormValues: FormData = {
   name: "",
   stock: 1,
+  lowStockThreshold: 10,
   dosages: [{ time: "08:00", amount: 1 }],
 };
 
@@ -108,19 +110,34 @@ export default function AddMedicineDialog() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Stock Quantity</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 100" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Stock</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 100" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="lowStockThreshold"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Low Stock Alert</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div>
               <FormLabel>Dosage Schedule</FormLabel>

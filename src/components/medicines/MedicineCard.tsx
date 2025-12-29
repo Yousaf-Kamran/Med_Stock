@@ -1,7 +1,7 @@
 "use client";
 
 import type { ProcessedMedicine } from "@/types";
-import { CalendarClock, Clock, MoreVertical, Trash2, Warehouse, Pencil } from "lucide-react";
+import { CalendarClock, Clock, MoreVertical, Trash2, Warehouse, Pencil, AlertTriangle } from "lucide-react";
 import { formatEndDate } from "@/lib/medicine-utils";
 
 import {
@@ -30,10 +30,10 @@ interface MedicineCardProps {
 
 export default function MedicineCard({ medicine, onEdit, onDelete }: MedicineCardProps) {
   const stockPercentage = medicine.stock > 0 ? (medicine.currentStock / medicine.stock) * 100 : 0;
-  const isLowStock = stockPercentage < 20;
+  const isLowStock = medicine.currentStock < (medicine.lowStockThreshold ?? 10);
 
   return (
-    <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow duration-300">
+    <Card className={`flex flex-col h-full shadow-md hover:shadow-lg transition-all duration-300 ${isLowStock ? 'border-destructive/50' : ''}`}>
       <CardHeader className="flex-row items-start justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">{medicine.name}</CardTitle>
@@ -70,6 +70,12 @@ export default function MedicineCard({ medicine, onEdit, onDelete }: MedicineCar
             </span>
           </div>
           <Progress value={stockPercentage} className={`h-2 ${isLowStock ? '[&>div]:bg-destructive' : ''}`} />
+          {isLowStock && (
+            <div className="flex items-center gap-1.5 text-xs text-destructive font-medium">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Low stock warning
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">

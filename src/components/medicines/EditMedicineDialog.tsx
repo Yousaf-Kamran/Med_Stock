@@ -36,6 +36,7 @@ const dosageSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   stock: z.coerce.number().int().min(1, "Stock must be at least 1."),
+  lowStockThreshold: z.coerce.number().int().min(0, "Low stock threshold must be a positive number."),
   dosages: z.array(dosageSchema).min(1, "At least one dosage schedule is required."),
 });
 
@@ -56,6 +57,7 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
     defaultValues: {
       name: "",
       stock: 0,
+      lowStockThreshold: 10,
       dosages: [{ time: "00:00", amount: 0 }],
     },
   });
@@ -65,6 +67,7 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
       form.reset({
         name: medicineToEdit.name,
         stock: medicineToEdit.stock,
+        lowStockThreshold: medicineToEdit.lowStockThreshold ?? 10,
         dosages: medicineToEdit.dosages,
       });
     }
@@ -109,19 +112,34 @@ export function EditMedicineDialog({ medicineToEdit, open, onOpenChange }: EditM
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stock Quantity</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 100" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stock Quantity</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 100" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="lowStockThreshold"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Low Stock Alert</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div>
               <FormLabel>Dosage Schedule</FormLabel>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMedicines } from "@/contexts/MedicineContext";
 import MedicineCard from "./MedicineCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Syringe } from "lucide-react";
+import { Syringe, AlertTriangle } from "lucide-react";
 import type { ProcessedMedicine } from "@/types";
 import {
   AlertDialog,
@@ -16,8 +16,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EditMedicineDialog } from './EditMedicineDialog';
 import { useToast } from "@/hooks/use-toast";
+
+function LowStockAlert({ lowStockMedicines }: { lowStockMedicines: ProcessedMedicine[] }) {
+  if (lowStockMedicines.length === 0) {
+    return null;
+  }
+
+  return (
+    <Alert variant="destructive" className="mb-6">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertTitle>Restock Required</AlertTitle>
+      <AlertDescription>
+        The following medicines are running low:{" "}
+        <strong>{lowStockMedicines.map(m => m.name).join(', ')}</strong>.
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 export default function MedicineList() {
   const { medicines, isLoading, deleteMedicine } = useMedicines();
@@ -27,6 +45,10 @@ export default function MedicineList() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const [medicineToDelete, setMedicineToDelete] = useState<ProcessedMedicine | null>(null);
+
+  const lowStockMedicines = useMemo(() => {
+    return medicines.filter(m => m.currentStock < (m.lowStockThreshold ?? 10));
+  }, [medicines]);
 
   const handleEdit = (medicine: ProcessedMedicine) => {
     setMedicineToEdit(medicine);
@@ -80,6 +102,7 @@ export default function MedicineList() {
 
   return (
     <>
+      <LowStockAlert lowStockMedicines={lowStockMedicines} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {medicines.map((medicine) => (
           <MedicineCard 
