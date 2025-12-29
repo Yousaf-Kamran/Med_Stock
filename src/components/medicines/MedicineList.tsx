@@ -20,6 +20,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EditMedicineDialog } from './EditMedicineDialog';
 import { useToast } from "@/hooks/use-toast";
 
+type DialogState = 
+  | { type: 'edit'; medicine: ProcessedMedicine }
+  | { type: 'delete'; medicine: ProcessedMedicine }
+  | null;
+
 function LowStockAlert({ lowStockMedicines }: { lowStockMedicines: ProcessedMedicine[] }) {
   if (lowStockMedicines.length === 0) {
     return null;
@@ -40,41 +45,21 @@ function LowStockAlert({ lowStockMedicines }: { lowStockMedicines: ProcessedMedi
 export default function MedicineList() {
   const { medicines, isLoading, deleteMedicine } = useMedicines();
   const { toast } = useToast();
-
-  const [medicineToEdit, setMedicineToEdit] = useState<ProcessedMedicine | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  
-  const [medicineToDelete, setMedicineToDelete] = useState<ProcessedMedicine | null>(null);
+  const [activeDialog, setActiveDialog] = useState<DialogState>(null);
 
   const lowStockMedicines = useMemo(() => {
     return medicines.filter(m => m.currentStock < (m.lowStockThreshold ?? 10));
   }, [medicines]);
 
-  const handleEdit = (medicine: ProcessedMedicine) => {
-    setMedicineToEdit(medicine);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleEditDialogClose = (open: boolean) => {
-    if (!open) {
-      setMedicineToEdit(null);
-    }
-    setIsEditDialogOpen(open);
-  }
-
-  const handleDeleteRequest = (medicine: ProcessedMedicine) => {
-    setMedicineToDelete(medicine);
-  };
-
   const confirmDelete = () => {
-    if (medicineToDelete) {
-      deleteMedicine(medicineToDelete.id);
+    if (activeDialog?.type === 'delete') {
+      deleteMedicine(activeDialog.medicine.id);
       toast({
         title: "Medicine Deleted",
-        description: `${medicineToDelete.name} has been removed.`,
+        description: `${activeDialog.medicine.name} has been removed.`,
         variant: "destructive"
       });
-      setMedicineToDelete(null);
+      setActiveDialog(null);
     }
   };
 
@@ -108,28 +93,28 @@ export default function MedicineList() {
           <MedicineCard 
             key={medicine.id} 
             medicine={medicine} 
-            onEdit={() => handleEdit(medicine)}
-            onDelete={() => handleDeleteRequest(medicine)}
+            onEdit={() => setActiveDialog({ type: 'edit', medicine })}
+            onDelete={() => setActiveDialog({ type: 'delete', medicine })}
           />
         ))}
       </div>
 
-      {medicineToEdit && (
+      {activeDialog?.type === 'edit' && (
         <EditMedicineDialog 
-          medicineToEdit={medicineToEdit}
-          open={isEditDialogOpen}
-          onOpenChange={handleEditDialogClose}
+          medicineToEdit={activeDialog.medicine}
+          open={true}
+          onOpenChange={(open) => !open && setActiveDialog(null)}
         />
       )}
 
-      {medicineToDelete && (
-        <AlertDialog open={!!medicineToDelete} onOpenChange={(open) => !open && setMedicineToDelete(null)}>
+      {activeDialog?.type === 'delete' && (
+        <AlertDialog open={true} onOpenChange={(open) => !open && setActiveDialog(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the
-                <span className="font-semibold"> {medicineToDelete.name} </span> 
+                <span className="font-semibold"> {activeDialog.medicine.name} </span> 
                 medicine from your tracker.
               </AlertDialogDescription>
             </AlertDialogHeader>
