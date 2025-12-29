@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useMedicines } from '@/contexts/MedicineContext';
-import { useToast } from './use-toast';
 
 const NOTIFICATION_INTERVAL = 3600 * 1000; // 1 hour
 const LAST_CHECK_KEY = 'medicine_last_notification_check';
@@ -10,18 +9,12 @@ const LOW_STOCK_NOTIFIED_KEY = 'medicine_low_stock_notified';
 
 export function useMedicineNotifications() {
   const { medicines, isLoading } = useMedicines();
-  const { toast } = useToast();
-  const workerRef = useRef<Worker>();
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && 'Notification' in window) {
-      navigator.serviceWorker.register('/service-worker.js').catch(err => {
-        console.error('Service Worker registration failed:', err);
-      });
+    if (typeof window === 'undefined' || !('Notification' in window) || !localStorage) {
+      return;
     }
-  }, []);
 
-  useEffect(() => {
     const notificationPermission = window.localStorage.getItem('notification_permission');
     if (notificationPermission !== 'granted' || isLoading) {
       return;
@@ -37,7 +30,7 @@ export function useMedicineNotifications() {
 
       if (newlyLowStockMedicines.length > 0) {
         const medicineNames = newlyLowStockMedicines.map(m => m.name).join(', ');
-        const notification = new Notification('Low Stock Alert', {
+        new Notification('Low Stock Alert', {
           body: `Time to restock: ${medicineNames}`,
           icon: '/favicon.ico',
         });
@@ -54,14 +47,12 @@ export function useMedicineNotifications() {
       }
     };
     
-    // Perform check immediately on load if enough time has passed
     const lastCheck = parseInt(localStorage.getItem(LAST_CHECK_KEY) || '0', 10);
     if (Date.now() - lastCheck > NOTIFICATION_INTERVAL) {
         checkStockAndNotify();
         localStorage.setItem(LAST_CHECK_KEY, Date.now().toString());
     }
 
-    // Set up interval to check periodically
     const intervalId = setInterval(() => {
         checkStockAndNotify();
         localStorage.setItem(LAST_CHECK_KEY, Date.now().toString());
@@ -69,5 +60,5 @@ export function useMedicineNotifications() {
 
     return () => clearInterval(intervalId);
 
-  }, [medicines, isLoading, toast]);
+  }, [medicines, isLoading]);
 }
