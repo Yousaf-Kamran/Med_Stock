@@ -3,7 +3,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { MedicineProvider } from "@/contexts/MedicineContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "MedStock Tracker",
@@ -41,7 +40,6 @@ export default function RootLayout({
             <Toaster />
           </MedicineProvider>
         </ThemeProvider>
-        <SpeedInsights />
       </body>
     </html>
   );
